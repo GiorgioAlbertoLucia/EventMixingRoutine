@@ -29,5 +29,5 @@ To use this tool, ensure the following dependencies are installed:
 
    ```cpp
    .x load.cpp
-   MixedEventRoutine("/path/to/your-config-file.yml")
+   MixedEventInterface("/path/to/your-config-file.yml")
    ```
