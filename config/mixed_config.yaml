@@ -1,0 +1,32 @@
+input_file: sample_data/example_trees.root
+merged_tree_file: sample_data/example_trees_merged.root
+tree_names: [ Tree0, Tree1 ]
+bin_tree_file: sample_data/example_binned_trees.root # File to save the trees in z-vertex and centrality bins
+output_file: sample_data/example_mixed_event.root
+
+buffer_size: 2                    # How many pairs to create for each event
+
+column_type_dict: [ x0: Double_t, # dummy centrality
+                    x1: Double_t, #  dummy z vertex
+                    x2: Double_t, #  x2, x3, x4, x5, x6 are the dummy variables to mix
+                    x3: Int_t,
+                    x4: Double_t,
+                    x5: Double_t,
+                    x6: Double_t,
+                    x7: Int_t,    # dummy collision ID
+                  ]
+column_names: [ x0, x1, x2, x3, x4, x5, x6, x7 ]
+trackA_column_names: [ x2, x3 ]
+trackB_column_names: [ x4, x5, x6 ]
+shared_column_names: [ x0, x1, x7 ]
+
+#centrality_bin_edges: [ 0, 5, 10, 20, 30, 50 ]
+#z_vertex_bin_edges: [ -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+
+centrality_bin_edges: [ 0, 5, 10 ]
+z_vertex_bin_edges: [ -10, -9 ]
+
+binning_column_A: x0              # Column name for binning: centrality
+binning_column_B: x1              # Column name for binning: z-vertex
+
+collision_id_column: x7           # Column name for collision ID: during the event mixing, the events with the DIFFERENT collision ID will be mixed

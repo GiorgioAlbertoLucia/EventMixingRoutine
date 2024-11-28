@@ -1,0 +1,130 @@
+input_file: /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same.root
+merged_tree_file: /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_merged.root
+tree_names: [ O2he3hadtable, O2he3hadmult ]
+bin_tree_file: /data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_tmp.root # File to save the trees in z-vertex and centrality bins
+output_file: /data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_new.root
+
+buffer_size: 2                    # How many pairs to create for each event
+
+column_type_dict: [
+                    fPtHe3: Float_t,
+                    fEtaHe3: Float_t,
+                    fPhiHe3: Float_t,
+                    fPtHad: Float_t,
+                    fEtaHad: Float_t,
+                    fPhiHad: Float_t,
+                    fDCAxyHe3: Float_t,
+                    fDCAzHe3: Float_t,
+                    fDCAxyHad: Float_t,
+                    fDCAzHad: Float_t,
+                    fSignalTPCHe3: Float_t,
+                    fInnerParamTPCHe3: Float_t,
+                    fSignalTPCHad: Float_t,
+                    fInnerParamTPCHad: Float_t,
+                    fNClsTPCHe3: UChar_t,
+                    fNSigmaTPCHe3: Float_t,
+                    fNSigmaTPCHad: Float_t,
+                    fChi2TPCHe3: Float_t,
+                    fChi2TPCHad: Float_t,
+                    fMassTOFHe3: Float_t,
+                    fMassTOFHad: Float_t,
+                    fPIDtrkHe3: UInt_t,
+                    fPIDtrkHad: UInt_t,
+                    fItsClusterSizeHe3: UInt_t,
+                    fItsClusterSizeHad: UInt_t,
+                    fSharedClustersHe3: UChar_t,
+                    fSharedClustersHad: UChar_t,
+                    fIsBkgUS: bool,
+                    fIsBkgEM: bool,
+                    fCollisionId: Long_t,
+                    fZVertex: Float_t,
+                    fMultiplicity: UShort_t,
+                    fCentralityFT0C: Float_t,
+                    fMultiplicityFT0C: Float_t
+                  ]
+column_names: [ 
+                fPtHe3,
+                fEtaHe3,
+                fPhiHe3,
+                fPtHad,
+                fEtaHad,
+                fPhiHad,
+                fDCAxyHe3,
+                fDCAzHe3,
+                fDCAxyHad,
+                fDCAzHad,
+                fSignalTPCHe3,
+                fInnerParamTPCHe3,
+                fSignalTPCHad,
+                fInnerParamTPCHad,
+                fNClsTPCHe3,
+                fNSigmaTPCHe3,
+                fNSigmaTPCHad,
+                fChi2TPCHe3,
+                fChi2TPCHad,
+                fMassTOFHe3,
+                fMassTOFHad,
+                fPIDtrkHe3,
+                fPIDtrkHad,
+                fItsClusterSizeHe3,
+                fItsClusterSizeHad,
+                fSharedClustersHe3,
+                fSharedClustersHad,
+                fIsBkgUS,
+                fIsBkgEM,
+                fCollisionId,
+                fZVertex,
+                fMultiplicity,
+                fCentralityFT0C,
+                fMultiplicityFT0C 
+              ]
+# columns relative to the He3              
+trackA_column_names: [  
+                        fPtHe3,
+                        fEtaHe3,
+                        fPhiHe3,
+                        fDCAxyHe3,
+                        fDCAzHe3,
+                        fSignalTPCHe3,
+                        fInnerParamTPCHe3,
+                        fNClsTPCHe3,
+                        fNSigmaTPCHe3,
+                        fChi2TPCHe3,
+                        fMassTOFHe3,
+                        fPIDtrkHe3,
+                        fItsClusterSizeHe3,
+                        fSharedClustersHe3
+                      ]
+# columns relative to the hadron
+trackB_column_names: [  
+                        fPtHad,
+                        fEtaHad,
+                        fPhiHad,
+                        fDCAxyHad,
+                        fDCAzHad,
+                        fSignalTPCHad,
+                        fInnerParamTPCHad,
+                        fNSigmaTPCHad,
+                        fChi2TPCHad,
+                        fMassTOFHad,
+                        fPIDtrkHad,
+                        fItsClusterSizeHad,
+                        fSharedClustersHad 
+                      ]
+shared_column_names: [  
+                        fIsBkgUS,
+                        fIsBkgEM,
+                        fCollisionId,
+                        fZVertex,
+                        fMultiplicity,
+                        fCentralityFT0C,
+                        fMultiplicityFT0C 
+                      ]
+
+centrality_bin_edges: [ 0, 5, 10, 20, 30, 50 ]
+z_vertex_bin_edges: [ -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+
+binning_column_A: fCentralityFT0C   # Column name for binning: centrality
+binning_column_B: fZVertex          # Column name for binning: z-vertex
+
+collision_id_column: fCollisionId,  # Column name for collision ID: during the event mixing, the events with the DIFFERENT collision ID will be mixed

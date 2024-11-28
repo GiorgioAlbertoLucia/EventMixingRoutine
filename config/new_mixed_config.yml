@@ -1,0 +1,31 @@
+NThreads: 4
+BufferSize: 5
+ColumnDict: [ x0/D, # dummy centrality
+              x1/D, #  dummy z vertex
+              x2/D, #  particle1 - x2, x3, x4, x5, x6 are the dummy variables to mix
+              x3/I, #  particle1
+              x4/D, #  particle2
+              x5/D, #  particle2
+              x6/D, #  particle2
+              x7/I, # dummy collision ID
+            ]
+Columns:    [ x0, # dummy centrality
+              x1, #  dummy z vertex
+              x2, #  particle1 - x2, x3, x4, x5, x6 are the dummy variables to mix
+              x3, #  particle1
+              x4, #  particle2
+              x5, #  particle2
+              x6, #  particle2
+              x7, # dummy collision ID
+            ]
+SecondElementColumns: [ x4, x5, x6 ]
+MixingExclusionVariable: x7
+
+BinVariableX: x0  # centrality - dummy
+BinVariableY: x1  # z-vertex - dummy
+NbinsX: 4
+Xmin: 0.
+Xmax: 10.
+NbinsY: 2 
+Ymin: -10.
+Ymax: 10.
