@@ -23,27 +23,29 @@ void MixedEventInterface(const char * configFileName) {
     std::string inputTreeHMergeFile = config["InputTreeHMergeFile"].as<std::string>();
 
     std::cout << "MergeAllTrees" << std::endl;
-    MergeAllTrees(inputTreeFile, treeNames, inputTreeMergeFile);
+    MergeAllTrees(inputTreeFile.c_str(), treeNames, inputTreeMergeFile.c_str());
 
     std::cout << std::endl;
-    TFile * inputFile = TFile::Open(inputTreeMergeFile);
-    std::vector<TTree *> inputTrees;
     std::vector<std::vector<std::string>> columnDicts;
     for (const auto & treeName : treeNames) {
-        inputTrees.push_back((TTree *) inputFile->Get(treeName.c_str()));
         std::vector<std::string> columnDict;
         YamlUtils::ReadYamlVector(config[treeName+"Dict"], columnDict);
+        columnDicts.push_back(columnDict);
     }
     std::vector<std::string> columnDictFull;
     YamlUtils::ReadYamlVector(config["ColumnDict"], columnDictFull);
 
+    //std::vector<TTree *> inputTrees;
+    //for (const auto & treeName : treeNames) {
+    //    inputTrees.push_back((TTree *) inputFile->Get(treeName.c_str()));
+    //}
     //for (size_t itree = 1; itree < inputTrees.size(); ++itree) {
     //    inputTrees[0]->AddFriend(inputTrees[itree]);
     //}
 
-    HorizontalMerge(inputTreeMergeFile, treeNames, inputTreeHMergeFile, 
+    HorizontalMerge(inputTreeMergeFile.c_str(), treeNames, inputTreeHMergeFile.c_str(), 
                     columnDicts, columnDictFull);
-    TFile * inputHMergeFile = TFile::Open(inputTreeHMergeFile);
+    TFile * inputHMergeFile = TFile::Open(inputTreeHMergeFile.c_str());
     TTree * inputHMergeTree = (TTree *) inputHMergeFile->Get("outputTree");
 
     //EventMixer mixer(inputTrees[0], configFileName);
@@ -78,6 +80,7 @@ void MixedEventInterface(const char * configFileName) {
 
     int startBin = 0;
     for (int ithread = 0; ithread < nThreads; ithread++) {
+        std::cout << "Thread: " << ithread << "/" << nThreads << std::endl;
         int endBin = startBin + binPerThread + (remainingBins > 0 ? 1 : 0);
         if (remainingBins > 0) {
             --remainingBins;
@@ -91,6 +94,7 @@ void MixedEventInterface(const char * configFileName) {
     }
 
     // Save the mixed tree
+    std::cout << "Saving mixed tree to sample_data/mixed_trees.root"  << std::endl;
     TFile * outputFile = TFile::Open("sample_data/mixed_trees.root", "RECREATE");
     mixer.SaveMixedTree(outputFile);
     outputFile->Close();

@@ -127,6 +127,10 @@ namespace TreeDict{
         }
     }
 
+    /**
+     * Create a row from a dictionary-like vector
+     * 
+    */
     std::vector<std::string> GetColumnNamesFromDict(std::vector<std::string>& dictionary) {
         std::vector<std::string> columnNames;
         for (const auto& line : dictionary) {

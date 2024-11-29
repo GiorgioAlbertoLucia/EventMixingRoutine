@@ -82,7 +82,6 @@ void HorizontalMerge(const char* inputFileName, std::vector<std::string>& treeNa
     TFile * inputFile = TFile::Open(inputFileName, "READ");
     size_t nTrees = treeNames.size();
 
-    TFile * outputFile = TFile::Open(outputFileName, "RECREATE");
     std::vector<TTree *> inputTrees;
     std::vector<Row> inputRows;
     std::vector<std::vector<std::string>> columnNames;
@@ -91,11 +90,13 @@ void HorizontalMerge(const char* inputFileName, std::vector<std::string>& treeNa
     inputRows.reserve(nTrees);
 
     // read the trees to merge and initialize the rows
+    std::cout << "Reading trees" << std::endl;
     for (size_t itree = 0; itree < nTrees; ++itree) {
         TTree * tree = (TTree*)inputFile->Get(treeNames[itree].c_str());
+        tree->Print();
         inputTrees.push_back(tree);
         Row inputRow;
-        TreeDict::CreateRowFromDict(columnDicts[itree], inputRow);
+        TreeDict::InitRowFromDict(columnDicts[itree], inputRow);
         inputRows.push_back(inputRow);
         TreeDict::SetBranchAddressesFromDict(inputTrees[itree], columnDicts[itree], inputRows[itree]);
         std::vector<std::string> columnNamesTmp = TreeDict::GetColumnNamesFromDict(columnDicts[itree]);
@@ -103,11 +104,14 @@ void HorizontalMerge(const char* inputFileName, std::vector<std::string>& treeNa
     }
 
     // create the output tree
+    std::cout << "Creating output tree" << std::endl;
+    TFile * outputFile = TFile::Open(outputFileName, "RECREATE");
     TTree * outputTree = new TTree("outputTree", "outputTree");
     Row outputRow;
-    TreeDict::CreateRowFromDict(columnDictFull, outputRow);
+    TreeDict::InitRowFromDict(columnDictFull, outputRow);
     TreeDict::CreateBranchesFromDict(outputTree, columnDictFull, outputRow);
 
+    std::cout << "Merging trees" << std::endl;
     const int nEntries = inputTrees[0]->GetEntries();
     for (int ientry = 0; ientry < nEntries; ++ientry) {
         for (size_t itree = 0; itree < nTrees; ++itree) {
@@ -118,6 +122,8 @@ void HorizontalMerge(const char* inputFileName, std::vector<std::string>& treeNa
         }
         outputTree->Fill();
     }
+    outputFile->cd();
+    outputTree->Write();
 
     std::cout << "Merging done" << std::endl;
     inputFile->Close();

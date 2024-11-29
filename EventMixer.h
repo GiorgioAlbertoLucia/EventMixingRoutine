@@ -11,6 +11,8 @@
 
 #include <yaml-cpp/yaml.h>
 #include <TTree.h>
+#include <TFile.h>
+#include <TROOT.h>
 
 #include "Hist2D.h"
 #include "YamlUtils.h"
