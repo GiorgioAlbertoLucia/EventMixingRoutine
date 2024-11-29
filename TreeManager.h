@@ -5,6 +5,10 @@
 #pragma once
 
 #include <iostream>
+#include <vector>
+#include <string>
+
+#include <yaml-cpp/yaml.h>
 
 #include <TTree.h>
 #include <TFile.h>
@@ -12,7 +16,8 @@
 #include <TDirectory.h>
 #include <TList.h>
 #include <TString.h>
-#include <ROOT/RDataFrame.hxx>
+
+#include "TreeReader.h"
 
 /**
  * Loops over the directories in a TFile and merges all the TTrees with the given name.
@@ -42,7 +47,7 @@ void TreeMerging(const char * inputFileName, const char * treeName, TFile * outp
 
     outputFile->cd();
     TTree * tree = TTree::MergeTrees(treeList);
-    //tree->Write();
+    tree->Write();
     inputFile->Close();
 }
 
@@ -62,7 +67,59 @@ void MergeAllTrees(const char* inputFileName, std::vector<std::string>& treeName
     TFile * outputFile = TFile::Open(outputFileName, "RECREATE");
 
     for (size_t itree = 0; itree < nTrees; ++itree) {
+        std::cout << "Merging tree: " << treeNames[itree] << std::endl;
         TreeMerging(inputFileName, treeNames[itree].c_str(), outputFile);
     }
+    std::cout << "Merging done" << std::endl;
+    outputFile->Close();
+}
+
+/**
+ * Merge the trees horizontally by adding the columns of the trees.
+*/
+void HorizontalMerge(const char* inputFileName, std::vector<std::string>& treeNames, const char* outputFileName, std::vector<std::vector<std::string>>& columnDicts, std::vector<std::string>& columnDictFull) {
+    
+    TFile * inputFile = TFile::Open(inputFileName, "READ");
+    size_t nTrees = treeNames.size();
+
+    TFile * outputFile = TFile::Open(outputFileName, "RECREATE");
+    std::vector<TTree *> inputTrees;
+    std::vector<Row> inputRows;
+    std::vector<std::vector<std::string>> columnNames;
+
+    inputTrees.reserve(nTrees);
+    inputRows.reserve(nTrees);
+
+    // read the trees to merge and initialize the rows
+    for (size_t itree = 0; itree < nTrees; ++itree) {
+        TTree * tree = (TTree*)inputFile->Get(treeNames[itree].c_str());
+        inputTrees.push_back(tree);
+        Row inputRow;
+        TreeDict::CreateRowFromDict(columnDicts[itree], inputRow);
+        inputRows.push_back(inputRow);
+        TreeDict::SetBranchAddressesFromDict(inputTrees[itree], columnDicts[itree], inputRows[itree]);
+        std::vector<std::string> columnNamesTmp = TreeDict::GetColumnNamesFromDict(columnDicts[itree]);
+        columnNames.push_back(columnNamesTmp);
+    }
+
+    // create the output tree
+    TTree * outputTree = new TTree("outputTree", "outputTree");
+    Row outputRow;
+    TreeDict::CreateRowFromDict(columnDictFull, outputRow);
+    TreeDict::CreateBranchesFromDict(outputTree, columnDictFull, outputRow);
+
+    const int nEntries = inputTrees[0]->GetEntries();
+    for (int ientry = 0; ientry < nEntries; ++ientry) {
+        for (size_t itree = 0; itree < nTrees; ++itree) {
+            inputTrees[itree]->GetEntry(ientry);
+            for (const auto & column : columnNames[itree]) {
+                outputRow[column] = inputRows[itree][column];
+            }
+        }
+        outputTree->Fill();
+    }
+
+    std::cout << "Merging done" << std::endl;
+    inputFile->Close();
     outputFile->Close();
 }

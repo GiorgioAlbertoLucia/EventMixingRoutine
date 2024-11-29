@@ -1,5 +1,20 @@
+InputTreeFile:        sample_data/example_trees.root
+TreeNames:            [Tree0, Tree1]
+InputTreeMergeFile:   sample_data/example_trees_merged.root
+InputTreeHMergeFile:  sample_data/example_trees_hmerged.root
+
 NThreads: 4
 BufferSize: 5
+Tree0Dict:  [ x0/D, # dummy centrality
+              x1/D, #  dummy z vertex
+              x2/D, #  particle1 - x2, x3, x4, x5, x6 are the dummy variables to mix
+              x3/I  #  particle1
+            ]
+Tree1Dict:  [ x4/D, #  particle2
+              x5/D, #  particle2
+              x6/D, #  particle2
+              x7/I  # dummy collision ID
+            ]
 ColumnDict: [ x0/D, # dummy centrality
               x1/D, #  dummy z vertex
               x2/D, #  particle1 - x2, x3, x4, x5, x6 are the dummy variables to mix

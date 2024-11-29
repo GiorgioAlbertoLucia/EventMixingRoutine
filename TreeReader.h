@@ -127,6 +127,19 @@ namespace TreeDict{
         }
     }
 
+    std::vector<std::string> GetColumnNamesFromDict(std::vector<std::string>& dictionary) {
+        std::vector<std::string> columnNames;
+        for (const auto& line : dictionary) {
+            std::stringstream ss(line);
+            std::string key, value;
+            char delim = '/';
+
+            std::getline(ss, key, delim);
+            columnNames.push_back(key);
+        }
+        return columnNames;
+    }
+
     /**
      * Visitor to get the address of a variant
     */

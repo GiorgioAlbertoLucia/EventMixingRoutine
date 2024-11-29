@@ -7,15 +7,20 @@
 #include <TFile.h>
 #include <TTree.h>
 
+#include "YamlUtils.h"
 #include "TreeManager.h"
 #include "EventMixer.h" 
 
 void MixedEventInterface(const char * configFileName) {
     
     std::cout << "MixedEventInterface" << std::endl;
-    const char * inputTreeFile = "sample_data/example_trees.root";
-    std::vector<std::string> treeNames = {"Tree0", "Tree1"};
-    const char * inputTreeMergeFile = "sample_data/example_trees_merged.root";
+
+    YAML::Node config = YAML::LoadFile(configFileName);
+    std::string inputTreeFile = config["InputTreeFile"].as<std::string>();
+    std::vector<std::string> treeNames;
+    YamlUtils::ReadYamlVector(config["TreeNames"], treeNames);
+    std::string inputTreeMergeFile = config["InputTreeMergeFile"].as<std::string>();
+    std::string inputTreeHMergeFile = config["InputTreeHMergeFile"].as<std::string>();
 
     std::cout << "MergeAllTrees" << std::endl;
     MergeAllTrees(inputTreeFile, treeNames, inputTreeMergeFile);
@@ -23,15 +28,27 @@ void MixedEventInterface(const char * configFileName) {
     std::cout << std::endl;
     TFile * inputFile = TFile::Open(inputTreeMergeFile);
     std::vector<TTree *> inputTrees;
+    std::vector<std::vector<std::string>> columnDicts;
     for (const auto & treeName : treeNames) {
         inputTrees.push_back((TTree *) inputFile->Get(treeName.c_str()));
+        std::vector<std::string> columnDict;
+        YamlUtils::ReadYamlVector(config[treeName+"Dict"], columnDict);
     }
+    std::vector<std::string> columnDictFull;
+    YamlUtils::ReadYamlVector(config["ColumnDict"], columnDictFull);
 
-    for (size_t itree = 1; itree < inputTrees.size(); ++itree) {
-        inputTrees[0]->AddFriend(inputTrees[itree]);
-    }
+    //for (size_t itree = 1; itree < inputTrees.size(); ++itree) {
+    //    inputTrees[0]->AddFriend(inputTrees[itree]);
+    //}
 
-    EventMixer mixer(inputTrees[0], configFileName);
+    HorizontalMerge(inputTreeMergeFile, treeNames, inputTreeHMergeFile, 
+                    columnDicts, columnDictFull);
+    TFile * inputHMergeFile = TFile::Open(inputTreeHMergeFile);
+    TTree * inputHMergeTree = (TTree *) inputHMergeFile->Get("outputTree");
+
+    //EventMixer mixer(inputTrees[0], configFileName);
+    EventMixer mixer(inputHMergeTree, configFileName);
+    inputHMergeFile->Close();
     mixer.Print();
     mixer.Sorting();
 
