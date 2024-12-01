@@ -13,31 +13,38 @@
 void MixedEventInterfaceLi4(const char * configFileName) {
     
     std::cout << "MixedEventInterface" << std::endl;
-    const char * inputTreeFile = "/data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same.root";
-    const char * inputTreeMergeFile = "/data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_merged.root";
-    std::vector<std::string> treeNames = {"O2he3hadtable", "O2he3hadmult"};
-    
-    const bool skipMerging = true;
-    if (!skipMerging) {
-        MergeAllTrees(inputTreeFile, treeNames, inputTreeMergeFile);
-    }
 
-    std::cout << std::endl;
-    TFile * inputFile = TFile::Open(inputTreeMergeFile);
-    std::vector<TTree *> inputTrees;
-    for (const auto & treeName : treeNames) {
-        inputTrees.push_back((TTree *) inputFile->Get(treeName.c_str()));
-    }
+    YAML::Node config = YAML::LoadFile(configFileName);
+    std::string inputTreeFile = config["InputTreeFile"].as<std::string>();
+    std::vector<std::string> treeNames;
+    YamlUtils::ReadYamlVector(config["TreeNames"], treeNames);
+    std::string inputTreeMergeFile = config["InputTreeMergeFile"].as<std::string>();
+    std::string inputTreeHMergeFile = config["InputTreeHMergeFile"].as<std::string>();
 
-    for (size_t itree = 1; itree < inputTrees.size(); ++itree) {
-        inputTrees[0]->AddFriend(inputTrees[itree]);
-    }
-    for (size_t itree = 0; itree < inputTrees.size(); ++itree) {
-        inputTrees[itree]->Print();
-    }
-    //inputTrees[0]->Print();
+    const bool doMerge = true;
+    if (doMerge) {
+        std::cout << "MergeAllTrees" << std::endl;
+        MergeAllTrees(inputTreeFile.c_str(), treeNames, inputTreeMergeFile.c_str());
 
-    EventMixer mixer(inputTrees[0], configFileName);
+        std::cout << std::endl;
+        std::vector<std::vector<std::string>> columnDicts;
+        for (const auto & treeName : treeNames) {
+            std::vector<std::string> columnDict;
+            YamlUtils::ReadYamlVector(config[treeName+"Dict"], columnDict);
+            columnDicts.push_back(columnDict);
+        }
+        std::vector<std::string> columnDictFull;
+        YamlUtils::ReadYamlVector(config["ColumnDict"], columnDictFull);
+
+        HorizontalMerge(inputTreeMergeFile.c_str(), treeNames, inputTreeHMergeFile.c_str(), 
+                        columnDicts, columnDictFull);
+    }
+    TFile * inputHMergeFile = TFile::Open(inputTreeHMergeFile.c_str());
+    TTree * inputHMergeTree = (TTree *) inputHMergeFile->Get("outputTree");
+
+    //EventMixer mixer(inputTrees[0], configFileName);
+    EventMixer mixer(inputHMergeTree, configFileName);
+    inputHMergeFile->Close();
     mixer.Print();
     mixer.Sorting();
 
@@ -81,7 +88,9 @@ void MixedEventInterfaceLi4(const char * configFileName) {
     }
 
     // Save the mixed tree
-    TFile * outputFile = TFile::Open("/data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_new.root");
+    std::string outputFileName = config["OutputFile"].as<std::string>();
+    std::cout << "Saving mixed tree to " << outputFileName << std::endl;
+    TFile * outputFile = TFile::Open(outputFileName.c_str(), "RECREATE");
     mixer.SaveMixedTree(outputFile);
     outputFile->Close();
 }

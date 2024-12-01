@@ -99,7 +99,7 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
     TreeDict::CacheColumnTypes(inputRow, m_columnTypeCache);
     TreeDict::SetBranchAddressesFromDict(inputTree, m_columnDict, inputRow);
 
-    ROOT::EnableImplicitMT(m_nThreads);
+    //ROOT::EnableImplicitMT(m_nThreads);
 
     m_nEvents = inputTree->GetEntries();
     const int underflowBin = m_binningHist.GetNBins();
@@ -115,7 +115,7 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
     }
     m_nEvents = filteredSize;
 
-    ROOT::DisableImplicitMT();
+    //ROOT::DisableImplicitMT();
 }
 
 void EventMixer::CleanUnderflow()
