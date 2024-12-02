@@ -106,9 +106,11 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
 
     m_nEvents = inputTree->GetEntries();
     const int underflowBin = m_binningHist.GetNBins();
+    m_inputArray.reserve(m_nEvents);
     int filteredSize = 0;
     for (int ientry = 0; ientry < m_nEvents; ientry++)
     {
+        if (ientry % 100000 == 0) std::cout << "Processing event: " << ientry << "/" << m_nEvents << std::endl;
         inputTree->GetEntry(ientry);
         //if (!m_binningHist.IsUnderflow(TreeDict::FloatCast(m_GetColumnValue(inputRow, m_binVariableX)), TreeDict::FloatCast(m_GetColumnValue(inputRow, m_binVariableY))))
         if (!m_binningHist.IsUnderflow(inputRow.GetFloat(m_binVariableX), inputRow.GetFloat(m_binVariableY)))
@@ -118,7 +120,6 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
         }
     }
     m_nEvents = filteredSize;
-    std::cout << "Event Mixer constructor 5" << std::endl;
 
     ROOT::DisableImplicitMT();
 }

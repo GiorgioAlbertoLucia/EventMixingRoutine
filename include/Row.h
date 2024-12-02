@@ -30,7 +30,6 @@ class Row {
     public:
         Row() = default;
         Row(const Row& other) {
-            m_columnTypeCache = other.m_columnTypeCache;
             for (const auto& [key, value] : other.m_row) {
                 m_row[key] = value;
             }
@@ -38,7 +37,6 @@ class Row {
         ~Row() = default;
 
         void operator=(const Row& other) {
-            m_columnTypeCache = other.m_columnTypeCache;
             for (const auto& [key, value] : other.m_row) {
                 m_row[key] = value;
             }
@@ -59,7 +57,6 @@ class Row {
 
                 m_row[key] = InitColumnValue(value);
             }
-            CacheColumnTypes();
         }
 
         /**
@@ -96,8 +93,6 @@ class Row {
                 default: throw std::runtime_error("Unsupported type in column: " + key);
             }
         }
-
-
 
         /**
          * Get the value of the column with given key as a float
@@ -172,7 +167,6 @@ class Row {
             std::cout << "]" << std::endl;
         }
         
-        RowType m_row;
 
     protected:
         
@@ -212,16 +206,6 @@ class Row {
         }
 
         /**
-         * Cache the types of the columns in a row
-        */
-        void CacheColumnTypes()
-        {
-            for (const auto& [columnName, columnValue] : m_row) {
-                m_columnTypeCache[columnName] = columnValue.index();
-            }
-        }
-
-        /**
          * Convert generic column value to a float
          */
         float FloatCast(const ColumnValue& value) {
@@ -236,5 +220,5 @@ class Row {
         };
 
     private:
-        std::map<std::string, size_t> m_columnTypeCache;
+        RowType m_row;
 };

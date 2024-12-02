@@ -4,44 +4,45 @@ InputTreeMergeFile:   /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_sam
 InputTreeHMergeFile:  /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_hmerged_us.root
 OutputFile:           /data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_us_local.root
 
+DoMerge: false
 NThreads: 20
 BufferSize: 2
-Tree0Dict:  [ fPtHe3/F,
-              fEtaHe3/F,
-              fPhiHe3/F,
-              fPtHad/F,
-              fEtaHad/F,
-              fPhiHad/F,
-              fDCAxyHe3/F,
-              fDCAzHe3/F,
-              fDCAxyHad/F,
-              fDCAzHad/F,
-              fSignalTPCHe3/F,
-              fInnerParamTPCHe3/F,
-              fSignalTPCHad/F,
-              fInnerParamTPCHad/F,
-              fNClsTPCHe3/b,
-              fNSigmaTPCHe3/F,
-              fNSigmaTPCHad/F,
-              fChi2TPCHe3/F,
-              fChi2TPCHad/F,
-              fMassTOFHe3/F,
-              fMassTOFHad/F,
-              fPIDtrkHe3/i,
-              fPIDtrkHad/i,
-              fItsClusterSizeHe3/i,
-              fItsClusterSizeHad/i,
-              fSharedClustersHe3/b,
-              fSharedClustersHad/b,
-              fIsBkgUS/O,
-              fIsBkgEM/O
-            ]
-Tree1Dict:  [ fCollisionId/G,
-              fZVertex/F,
-              fMultiplicity/F,
-              fCentralityFT0C/F,
-              fMultiplicityFT0C/F
-            ]
+O2he3hadtableDict:  [ fPtHe3/F,
+                      fEtaHe3/F,
+                      fPhiHe3/F,
+                      fPtHad/F,
+                      fEtaHad/F,
+                      fPhiHad/F,
+                      fDCAxyHe3/F,
+                      fDCAzHe3/F,
+                      fDCAxyHad/F,
+                      fDCAzHad/F,
+                      fSignalTPCHe3/F,
+                      fInnerParamTPCHe3/F,
+                      fSignalTPCHad/F,
+                      fInnerParamTPCHad/F,
+                      fNClsTPCHe3/b,
+                      fNSigmaTPCHe3/F,
+                      fNSigmaTPCHad/F,
+                      fChi2TPCHe3/F,
+                      fChi2TPCHad/F,
+                      fMassTOFHe3/F,
+                      fMassTOFHad/F,
+                      fPIDtrkHe3/i,
+                      fPIDtrkHad/i,
+                      fItsClusterSizeHe3/i,
+                      fItsClusterSizeHad/i,
+                      fSharedClustersHe3/b,
+                      fSharedClustersHad/b,
+                      fIsBkgUS/O,
+                      fIsBkgEM/O
+                    ]
+O2he3hadmultDict:   [ fCollisionId/G,
+                      fZVertex/F,
+                      fMultiplicity/F,
+                      fCentralityFT0C/F,
+                      fMultiplicityFT0C/F
+                    ]
 ColumnDict: [ 
               fPtHe3/F,
               fEtaHe3/F,
@@ -136,6 +137,6 @@ BinVariableY: fZVertex        # z-vertex - dummy
 NbinsX: 10
 Xmin: 0.
 Xmax: 50.
-NbinsY: 20 
+NbinsY: 20
 Ymin: -10.
 Ymax: 10.

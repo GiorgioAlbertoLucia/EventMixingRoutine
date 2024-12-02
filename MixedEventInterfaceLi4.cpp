@@ -21,7 +21,7 @@ void MixedEventInterfaceLi4(const char * configFileName) {
     std::string inputTreeMergeFile = config["InputTreeMergeFile"].as<std::string>();
     std::string inputTreeHMergeFile = config["InputTreeHMergeFile"].as<std::string>();
 
-    const bool doMerge = true;
+    bool doMerge = config["DoMerge"].as<bool>();
     if (doMerge) {
         std::cout << "MergeAllTrees" << std::endl;
         MergeAllTrees(inputTreeFile.c_str(), treeNames, inputTreeMergeFile.c_str());
@@ -41,6 +41,7 @@ void MixedEventInterfaceLi4(const char * configFileName) {
     }
     TFile * inputHMergeFile = TFile::Open(inputTreeHMergeFile.c_str());
     TTree * inputHMergeTree = (TTree *) inputHMergeFile->Get("outputTree");
+    inputHMergeTree->Print();
 
     EventMixer mixer(inputHMergeTree, configFileName);
     inputHMergeFile->Close();
@@ -90,6 +91,6 @@ void MixedEventInterfaceLi4(const char * configFileName) {
     std::string outputFileName = config["OutputFile"].as<std::string>();
     std::cout << "Saving mixed tree to " << outputFileName << std::endl;
     TFile * outputFile = TFile::Open(outputFileName.c_str(), "RECREATE");
-    mixer.SaveMixedTree(outputFile);
+    mixer.SaveMixedTree(outputFile, "MixedTree");
     outputFile->Close();
 }
