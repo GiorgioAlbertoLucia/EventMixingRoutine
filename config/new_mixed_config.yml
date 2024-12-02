@@ -2,6 +2,7 @@ InputTreeFile:        sample_data/example_trees.root
 TreeNames:            [Tree0, Tree1]
 InputTreeMergeFile:   sample_data/example_trees_merged.root
 InputTreeHMergeFile:  sample_data/example_trees_hmerged.root
+OutputFile:           sample_data/example_mixed_trees.root
 
 NThreads: 4
 BufferSize: 5

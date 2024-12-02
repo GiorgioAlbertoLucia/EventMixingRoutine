@@ -7,9 +7,9 @@
 #include <TFile.h>
 #include <TTree.h>
 
-#include "YamlUtils.h"
-#include "TreeManager.h"
-#include "EventMixer.h" 
+#include "include/YamlUtils.h"
+#include "include/TreeManager.h"
+#include "include/EventMixer.h" 
 
 void MixedEventInterface(const char * configFileName) {
     

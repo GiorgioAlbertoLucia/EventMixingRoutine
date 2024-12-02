@@ -7,8 +7,8 @@
 #include <TFile.h>
 #include <TTree.h>
 
-#include "TreeManager.h"
-#include "EventMixer.h" 
+#include "include/TreeManager.h"
+#include "include/EventMixer.h" 
 
 void MixedEventInterfaceLi4(const char * configFileName) {
     
@@ -42,7 +42,6 @@ void MixedEventInterfaceLi4(const char * configFileName) {
     TFile * inputHMergeFile = TFile::Open(inputTreeHMergeFile.c_str());
     TTree * inputHMergeTree = (TTree *) inputHMergeFile->Get("outputTree");
 
-    //EventMixer mixer(inputTrees[0], configFileName);
     EventMixer mixer(inputHMergeTree, configFileName);
     inputHMergeFile->Close();
     mixer.Print();
