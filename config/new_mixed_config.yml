@@ -4,6 +4,7 @@ InputTreeMergeFile:   sample_data/example_trees_merged.root
 InputTreeHMergeFile:  sample_data/example_trees_hmerged.root
 OutputFile:           sample_data/example_mixed_trees.root
 
+DoMerge: true
 NThreads: 4
 BufferSize: 5
 Tree0Dict:  [ x0/D, # dummy centrality

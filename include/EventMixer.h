@@ -155,6 +155,43 @@ void EventMixer::CleanUnderflow()
 void EventMixer::Sorting()
 {
     std::cout << "Sorting" << std::endl;
+    std::vector<int> binPositionArray(m_inputArray.size()); // bin index of each event
+    std::transform(m_inputArray.begin(), m_inputArray.end(), binPositionArray.begin(), [&](Row& row) {
+        return m_binningHist.GetBin(row.GetFloat(m_binVariableX), row.GetFloat(m_binVariableY));
+    });
+
+    std::vector<std::pair<int, int>> binPositionIndexArray(m_inputArray.size()); // index and bin index of each event
+    for (size_t i = 0; i < m_inputArray.size(); i++)
+    {
+        binPositionIndexArray[i] = std::make_pair(i, binPositionArray[i]);
+    }
+
+    std::sort(binPositionIndexArray.begin(), binPositionIndexArray.end(), [](std::pair<int, int>& a, std::pair<int, int>& b) {
+        return a.second < b.second;
+    });
+
+    m_sortedArray.clear();
+    m_sortedArray.reserve(binPositionIndexArray.size());
+    for (auto& [index, bin]: binPositionIndexArray)
+    {
+        m_sortedArray.push_back(m_inputArray[index]);
+        m_binningHist.Fill(m_inputArray[index].GetFloat(m_binVariableX), m_inputArray[index].GetFloat(m_binVariableY));
+    }
+
+    m_inputArray.clear();
+
+    m_binIndex.resize(m_binningHist.GetNBins(), 0);
+    std::vector<float> binData = m_binningHist.GetData();
+    for (int bin = 0; bin < m_binningHist.GetNBins(); bin++)
+    {
+        m_binIndex[bin] = static_cast<int>(binData[bin]);
+    }
+    // make binIndex store the first index of the bin in the sorted array
+    std::exclusive_scan(m_binIndex.begin(), m_binIndex.end(), m_binIndex.begin(), 0);
+    m_mixedBinIndex.resize(m_binIndex.size(), 0);
+
+    /*
+    std::cout << "Sorting" << std::endl;
     m_sortedArray = m_inputArray;
     std::iota(m_sortedArrayIndex.begin(), m_sortedArrayIndex.end(), 0); // Initialize indices
 
@@ -182,7 +219,7 @@ void EventMixer::Sorting()
     // make binIndex store the first index of the bin in the sorted array
     std::exclusive_scan(m_binIndex.begin(), m_binIndex.end(), m_binIndex.begin(), 0);
     m_mixedBinIndex.resize(m_binIndex.size(), 0);
-
+    */
 }
 
 /**
@@ -219,7 +256,6 @@ void EventMixer::BinMixing(const int ibin)
                     std::lock_guard<std::mutex> lock(m_mutex); // Lock the mutex
                     m_mixedArray.push_back(mixedRow);
                     currentlyMixed++;
-                    std::cout << "Mixed: " << currentlyMixed << std::endl;
                 }
             }
         }
@@ -228,7 +264,6 @@ void EventMixer::BinMixing(const int ibin)
         std::lock_guard<std::mutex> lock(m_mutex); // Lock the mutex
         m_mixedBinIndex[ibin+1] = currentlyMixed + m_mixedBinIndex[ibin];
     }
-    std::cout << "size of mixed array: " << m_mixedArray.size() << std::endl;
 }
 
 /**
