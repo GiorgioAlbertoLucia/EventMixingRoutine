@@ -1,12 +1,12 @@
-InputTreeFile:        /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_us.root
+InputTreeFile:        /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same.root
 TreeNames:            [ O2he3hadtable, O2he3hadmult ]
-InputTreeMergeFile:   /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_merged_us.root
-InputTreeHMergeFile:  /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_hmerged_us.root
-OutputFile:           /data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_us_local.root
+InputTreeMergeFile:   /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_merged.root
+InputTreeHMergeFile:  /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_hmerged.root
+OutputFile:           /data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_local.root
 
-DoMerge: false
+DoMerge: true
 NThreads: 20
-BufferSize: 2
+BufferSize: 5
 O2he3hadtableDict:  [ fPtHe3/F,
                       fEtaHe3/F,
                       fPhiHe3/F,

@@ -62,13 +62,6 @@ class EventMixer
         std::string m_binVariableX, m_binVariableY;     // name of the variables used for the binning
         std::string m_mixingExclusionVariable;          // name of the variable used to exclude pairs from mixing
         std::vector<std::string> m_secondElementColumns;// columns of the second element to be mixed
-    
-    protected:
-
-        //ColumnValue m_GetColumnValue(Row& row, const std::string& key)
-        //{
-        //    return row.GetColumnValue(row, key, m_columnTypeCache);
-        //}
         
 };
 
@@ -95,11 +88,9 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
     YamlUtils::ReadYamlVector(config["ColumnDict"], m_columnDict);
     YamlUtils::ReadYamlVector(config["Columns"], m_columns);
     YamlUtils::ReadYamlVector(config["SecondElementColumns"], m_secondElementColumns);  
+    
     Row inputRow;
-    //TreeDict::InitRowFromDict(m_columnDict, inputRow);
     inputRow.InitRowFromDict(m_columnDict);
-    //TreeDict::CacheColumnTypes(inputRow, m_columnTypeCache);
-    //TreeDict::SetBranchAddressesFromDict(inputTree, m_columnDict, inputRow);
     inputRow.SetBranchAddressesFromDict(inputTree, m_columnDict);
 
     ROOT::EnableImplicitMT(m_nThreads);
@@ -110,15 +101,15 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
     int filteredSize = 0;
     for (int ientry = 0; ientry < m_nEvents; ientry++)
     {
-        if (ientry % 100000 == 0) std::cout << "Processing event: " << ientry << "/" << m_nEvents << std::endl;
+        if (ientry % 100000 == 0) std::cout << "Processing event: " << ientry << "/" << m_nEvents << "\r";
         inputTree->GetEntry(ientry);
-        //if (!m_binningHist.IsUnderflow(TreeDict::FloatCast(m_GetColumnValue(inputRow, m_binVariableX)), TreeDict::FloatCast(m_GetColumnValue(inputRow, m_binVariableY))))
         if (!m_binningHist.IsUnderflow(inputRow.GetFloat(m_binVariableX), inputRow.GetFloat(m_binVariableY)))
         {
             m_inputArray.push_back(inputRow);
             filteredSize++;
         }
     }
+    std::cout << std::endl;
     m_nEvents = filteredSize;
 
     ROOT::DisableImplicitMT();
@@ -168,22 +159,17 @@ void EventMixer::Sorting()
     std::iota(m_sortedArrayIndex.begin(), m_sortedArrayIndex.end(), 0); // Initialize indices
 
     std::sort(m_sortedArray.begin(), m_sortedArray.end(), [&](Row& a, Row& b) {
-        //return m_binningHist.GetBin(TreeDict::FloatCast(m_GetColumnValue(a, m_binVariableX)), TreeDict::FloatCast(m_GetColumnValue(a, m_binVariableY))) < 
-        //       m_binningHist.GetBin(TreeDict::FloatCast(m_GetColumnValue(b, m_binVariableX)), TreeDict::FloatCast(m_GetColumnValue(b, m_binVariableY)));
         return m_binningHist.GetBin(a.GetFloat(m_binVariableX), a.GetFloat(m_binVariableY)) < 
                 m_binningHist.GetBin(b.GetFloat(m_binVariableX), b.GetFloat(m_binVariableY));
     });
 
     std::sort(m_sortedArrayIndex.begin(), m_sortedArrayIndex.end(), [&](int a, int b) {
-        //return m_binningHist.GetBin(TreeDict::FloatCast(m_GetColumnValue(m_sortedArray[a], m_binVariableX)), TreeDict::FloatCast(m_GetColumnValue(m_sortedArray[a], m_binVariableY))) < 
-        //       m_binningHist.GetBin(TreeDict::FloatCast(m_GetColumnValue(m_sortedArray[b], m_binVariableX)), TreeDict::FloatCast(m_GetColumnValue(m_sortedArray[b], m_binVariableY)));
         return m_binningHist.GetBin(m_sortedArray[a].GetFloat(m_binVariableX), m_sortedArray[a].GetFloat(m_binVariableY)) < 
                 m_binningHist.GetBin(m_sortedArray[b].GetFloat(m_binVariableX), m_sortedArray[b].GetFloat(m_binVariableY));
     });
 
     for (auto& row: m_sortedArray)
     {
-        //m_binningHist.Fill(TreeDict::FloatCast(m_GetColumnValue(row, m_binVariableX)), TreeDict::FloatCast(m_GetColumnValue(row, m_binVariableY)));
         m_binningHist.Fill(row.GetFloat(m_binVariableX), row.GetFloat(m_binVariableY));
     }
     
@@ -290,18 +276,12 @@ void EventMixer::SaveMixedTree(TFile * outputFile, const char * treeName = "Mixe
     TTree * outputTree = new TTree(treeName, treeName);
 
     Row mixedRow;
-    //TreeDict::InitRowFromDict(m_columnDict, mixedRow);
-    //TreeDict::CreateBranchesFromDict(outputTree, m_columnDict, mixedRow);
     mixedRow.InitRowFromDict(m_columnDict);
     mixedRow.CreateBranchesFromDict(outputTree, m_columnDict);
 
     for (auto& row: m_mixedArray)
     {
         mixedRow = row;
-        //for (auto column: m_columns)
-        //{
-        //    mixedRow[column] = row[column];
-        //}
         outputTree->Fill();
     }
     outputFile->cd();
