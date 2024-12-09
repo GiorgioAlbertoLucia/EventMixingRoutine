@@ -2,11 +2,13 @@ InputTreeFile:        /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_sam
 TreeNames:            [ O2he3hadtable, O2he3hadmult ]
 InputTreeMergeFile:   /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_merged.root
 InputTreeHMergeFile:  /data/galucia/lithium_local/same/LHC23_PbPb_pass4_long_same_hmerged.root
-OutputFile:           /data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_local.root
+OutputFile:           /data/galucia/lithium_local/mixing/LHC23_PbPb_pass4_long_mixing_local_test.root
 
-DoMerge: true
+DoMerge: false
+DoParallel: false
 NThreads: 20
 BufferSize: 5
+MaxMixSize: 6000000
 O2he3hadtableDict:  [ fPtHe3/F,
                       fEtaHe3/F,
                       fPhiHe3/F,
@@ -134,9 +136,9 @@ MixingExclusionVariable: fCollisionId
 
 BinVariableX: fCentralityFT0C # centrality - dummy
 BinVariableY: fZVertex        # z-vertex - dummy
-NbinsX: 10
+NbinsX: 1
 Xmin: 0.
-Xmax: 50.
-NbinsY: 20
+Xmax: 100.
+NbinsY: 30
 Ymin: -10.
 Ymax: 10.

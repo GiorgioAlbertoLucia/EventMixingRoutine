@@ -41,7 +41,6 @@ void MixedEventInterfaceLi4(const char * configFileName) {
     }
     TFile * inputHMergeFile = TFile::Open(inputTreeHMergeFile.c_str());
     TTree * inputHMergeTree = (TTree *) inputHMergeFile->Get("outputTree");
-    inputHMergeTree->Print();
 
     EventMixer mixer(inputHMergeTree, configFileName);
     inputHMergeFile->Close();
@@ -49,42 +48,42 @@ void MixedEventInterfaceLi4(const char * configFileName) {
     mixer.Sorting();
 
     const int nMixingBins = mixer.GetNBins() - 1; // Exclude the overflow bin
-    /*  
-    // No parallel
-    for (int ibin = 0; ibin < nMixingBins; ibin++) {
-        std::cout << "BinMixing: " << ibin << "/" << nMixingBins << std::endl;
-        mixer.BinMixing(ibin);
-    }
-    */
-
-    // Parallel
-    int nThreads = mixer.GetNThreads();
-    nThreads = std::min(nThreads, nMixingBins);
-
-    std::vector<std::future<void>> futures;
-
-    auto worker = [&] (int startBin, int endBin) {
-        for (int ibin = startBin; ibin < endBin; ibin++) {
+    //const int nMixingBins = 1; // checking purpose
+    const bool doParallel = config["DoParallel"].as<bool>();
+    if (!doParallel) {
+        for (int ibin = 0; ibin < nMixingBins; ibin++) {
+            std::cout << "BinMixing: " << ibin << "/" << nMixingBins << std::endl;
             mixer.BinMixing(ibin);
         }
-    };
+    } else {
+        int nThreads = mixer.GetNThreads();
+        nThreads = std::min(nThreads, nMixingBins);
 
-    const int binPerThread = nMixingBins / nThreads;
-    int remainingBins = nMixingBins % nThreads;
+        std::vector<std::future<void>> futures;
 
-    int startBin = 0;
-    for (int ithread = 0; ithread < nThreads; ithread++) {
-        int endBin = startBin + binPerThread + (remainingBins > 0 ? 1 : 0);
-        if (remainingBins > 0) {
-            --remainingBins;
+        auto worker = [&] (int startBin, int endBin) {
+            for (int ibin = startBin; ibin < endBin; ibin++) {
+                mixer.BinMixing(ibin);
+            }
+        };
+
+        const int binPerThread = nMixingBins / nThreads;
+        int remainingBins = nMixingBins % nThreads;
+
+        int startBin = 0;
+        for (int ithread = 0; ithread < nThreads; ithread++) {
+            int endBin = startBin + binPerThread + (remainingBins > 0 ? 1 : 0);
+            if (remainingBins > 0) {
+                --remainingBins;
+            }
+            futures.push_back(std::async(std::launch::async, worker, startBin, endBin));
+            startBin = endBin;
+            std::cout << "Thread " << ithread << " / " << nThreads << " completed" << std::endl;
         }
-        futures.push_back(std::async(std::launch::async, worker, startBin, endBin));
-        startBin = endBin;
-        std::cout << "Thread " << ithread << " / " << nThreads << " completed" << std::endl;
-    }
-    
-    for (auto & future : futures) {
-        future.get();
+
+        for (auto & future : futures) {
+            future.get();
+        }
     }
 
     // Save the mixed tree

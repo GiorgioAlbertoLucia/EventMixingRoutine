@@ -34,6 +34,9 @@ class Row {
                 m_row[key] = value;
             }
         }
+        Row(Row&& other) noexcept {
+            m_row = std::move(other.m_row);
+        }
         ~Row() = default;
 
         void operator=(const Row& other) {

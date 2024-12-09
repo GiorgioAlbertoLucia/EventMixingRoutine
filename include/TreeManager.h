@@ -62,7 +62,6 @@ void TreeMerging(const char * inputFileName, const char * treeName, TFile * outp
  */
 void MergeAllTrees(const char* inputFileName, std::vector<std::string>& treeNames, const char* outputFileName) {
     
-    //TFile * inputFile = TFile::Open(inputFileName, "READ");
     size_t nTrees = treeNames.size();
 
     TFile * outputFile = TFile::Open(outputFileName, "RECREATE");
@@ -97,10 +96,8 @@ void HorizontalMerge(const char* inputFileName, std::vector<std::string>& treeNa
         tree->Print();
         inputTrees.push_back(tree);
         Row inputRow;
-        //TreeDict::InitRowFromDict(columnDicts[itree], inputRow);
         inputRow.InitRowFromDict(columnDicts[itree]);
         inputRows.push_back(inputRow);
-        //TreeDict::SetBranchAddressesFromDict(inputTrees[itree], columnDicts[itree], inputRows[itree]);
         inputRows[itree].SetBranchAddressesFromDict(inputTrees[itree], columnDicts[itree]);
         std::vector<std::string> columnNamesTmp = TreeDict::GetColumnNamesFromDict(columnDicts[itree]);
         columnNames.push_back(columnNamesTmp);
@@ -111,8 +108,6 @@ void HorizontalMerge(const char* inputFileName, std::vector<std::string>& treeNa
     TFile * outputFile = TFile::Open(outputFileName, "RECREATE");
     TTree * outputTree = new TTree("outputTree", "outputTree");
     Row outputRow;
-    //TreeDict::InitRowFromDict(columnDictFull, outputRow);
-    //TreeDict::CreateBranchesFromDict(outputTree, columnDictFull, outputRow);
     outputRow.InitRowFromDict(columnDictFull);
     outputRow.CreateBranchesFromDict(outputTree, columnDictFull);
 

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <numeric>
 #include <mutex>
+#include <cmath>
 
 #include <yaml-cpp/yaml.h>
 #include <TTree.h>
@@ -19,6 +20,12 @@
 #include "TreeReader.h"
 #include "Queue.h"
 #include "Row.h"
+
+namespace physics
+{
+    const float massProton = 0.938272;
+    const float massHe3 = 2.80923;
+}
 
 using ColumnValue = std::variant<Char_t, UChar_t, Short_t, UShort_t, Int_t, UInt_t, Long64_t, ULong64_t, Float_t, Double_t, bool, std::string>;
 using RowType = std::map<std::string, ColumnValue>;
@@ -34,6 +41,7 @@ class EventMixer
         void CleanUnderflow();
         void Sorting();
         void BinMixing(const int ibin);
+        void BinMixingParallel(const int ibin);
         void SaveMixedBinTree(TFile * outputFile, const int ibin);
         void SaveMixedTree(TFile * outputFile, const char * treeName);
         void SaveMixedTree(const char * outputFileName) {};
@@ -46,6 +54,7 @@ class EventMixer
 
         int m_bufferSize;                               // size of the buffer for the event mixing
         int m_nEvents;
+        int m_maxMixSize;
         std::map<std::string, size_t> m_columnTypeCache;// cache the types of the columns in a row
         std::vector<std::string> m_columnDict;          // dictionary of columns to be read from the input tree
         std::vector<std::string> m_columns;             // list of columns to be read from the input tree
@@ -83,6 +92,7 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
     m_binVariableX = config["BinVariableX"].as<std::string>();
     m_binVariableY = config["BinVariableY"].as<std::string>();
     m_mixingExclusionVariable = config["MixingExclusionVariable"].as<std::string>();
+    m_maxMixSize = config["MaxMixSize"].as<int>();
 
     // Prepare to read from the input tree
     YamlUtils::ReadYamlVector(config["ColumnDict"], m_columnDict);
@@ -101,8 +111,11 @@ EventMixer::EventMixer(TTree* inputTree, const char* configFileName)
     int filteredSize = 0;
     for (int ientry = 0; ientry < m_nEvents; ientry++)
     {
-        if (ientry % 100000 == 0) std::cout << "Processing event: " << ientry << "/" << m_nEvents << "\r";
+        if (ientry % 100000 == 0) std::cout << "Processing event: " << ientry << "/" << m_nEvents << "\r" << std::flush;
         inputTree->GetEntry(ientry);
+        if (std::abs(inputRow.GetFloat("fNSigmaTPCHad")) > 2 || std::abs(inputRow.GetFloat("fNSigmaTPCHe3")) > 2) {
+            continue;
+        }
         if (!m_binningHist.IsUnderflow(inputRow.GetFloat(m_binVariableX), inputRow.GetFloat(m_binVariableY)))
         {
             m_inputArray.push_back(inputRow);
@@ -170,6 +183,7 @@ void EventMixer::Sorting()
         return a.second < b.second;
     });
 
+    std::cout << "Filling sorted arrays" << std::endl;
     m_sortedArray.clear();
     m_sortedArray.reserve(binPositionIndexArray.size());
     for (auto& [index, bin]: binPositionIndexArray)
@@ -189,47 +203,95 @@ void EventMixer::Sorting()
     // make binIndex store the first index of the bin in the sorted array
     std::exclusive_scan(m_binIndex.begin(), m_binIndex.end(), m_binIndex.begin(), 0);
     m_mixedBinIndex.resize(m_binIndex.size(), 0);
-
-    /*
-    std::cout << "Sorting" << std::endl;
-    m_sortedArray = m_inputArray;
-    std::iota(m_sortedArrayIndex.begin(), m_sortedArrayIndex.end(), 0); // Initialize indices
-
-    std::sort(m_sortedArray.begin(), m_sortedArray.end(), [&](Row& a, Row& b) {
-        return m_binningHist.GetBin(a.GetFloat(m_binVariableX), a.GetFloat(m_binVariableY)) < 
-                m_binningHist.GetBin(b.GetFloat(m_binVariableX), b.GetFloat(m_binVariableY));
-    });
-
-    std::sort(m_sortedArrayIndex.begin(), m_sortedArrayIndex.end(), [&](int a, int b) {
-        return m_binningHist.GetBin(m_sortedArray[a].GetFloat(m_binVariableX), m_sortedArray[a].GetFloat(m_binVariableY)) < 
-                m_binningHist.GetBin(m_sortedArray[b].GetFloat(m_binVariableX), m_sortedArray[b].GetFloat(m_binVariableY));
-    });
-
-    for (auto& row: m_sortedArray)
-    {
-        m_binningHist.Fill(row.GetFloat(m_binVariableX), row.GetFloat(m_binVariableY));
-    }
-    
-    m_binIndex.resize(m_binningHist.GetNBins(), 0);
-    std::vector<float> binData = m_binningHist.GetData();
-    for (int bin = 0; bin < m_binningHist.GetNBins(); bin++)
-    {
-        m_binIndex[bin] = static_cast<int>(binData[bin]);
-    }
-    // make binIndex store the first index of the bin in the sorted array
-    std::exclusive_scan(m_binIndex.begin(), m_binIndex.end(), m_binIndex.begin(), 0);
-    m_mixedBinIndex.resize(m_binIndex.size(), 0);
-    */
 }
 
 /**
- * @brief Mix the events in a given bin
+ * @brief Mix the events in a given bin (not thread safe)
  * @param ibin Index of the bin
  */
 void EventMixer::BinMixing(const int ibin)
 {
     const int binStart = m_binIndex[ibin];
+    //const int binEnd = m_binIndex[ibin] + 10; // checking purpose
     const int binEnd = m_binIndex[ibin + 1];
+
+    const float massHe3 = physics::massHe3;
+    const float massProton = physics::massProton;
+    
+    Queue<Row> queue(m_bufferSize);
+    int currentlyMixed = 0;
+
+    for (int ievent = binStart; ievent < binEnd; ievent++)
+    {
+        Row currentRow = m_sortedArray[ievent];
+        Row mixedRow = currentRow;
+
+        float energyHe3 = std::sqrt(massHe3 * massHe3 + 
+                                            currentRow.GetFloat("fPtHe3") * std::cosh(currentRow.GetFloat("fEtaHe3")) * 
+                                            currentRow.GetFloat("fPtHe3") * std::cosh(currentRow.GetFloat("fEtaHe3")));
+       
+        for (int i = 0; i < queue.GetSize(); i++)
+        {
+            auto rowToMix = queue.GetElement(i);
+            if (currentRow[m_mixingExclusionVariable] == rowToMix[m_mixingExclusionVariable]) {
+                continue;
+            }
+
+            float energyProton = std::sqrt(massProton * massProton + 
+                                           rowToMix.GetFloat("fPtHad") * std::cosh(rowToMix.GetFloat("fEtaHad")) * 
+                                           rowToMix.GetFloat("fPtHad") * std::cosh(rowToMix.GetFloat("fEtaHad")));              
+
+            float px = currentRow.GetFloat("fPtHe3") * std::cos(currentRow.GetFloat("fPhiHe3")) + 
+                       rowToMix.GetFloat("fPtHad") * std::cos(rowToMix.GetFloat("fPhiHad"));
+            float py = currentRow.GetFloat("fPtHe3") * std::sin(currentRow.GetFloat("fPhiHe3")) + 
+                       rowToMix.GetFloat("fPtHad") * std::sin(rowToMix.GetFloat("fPhiHad"));
+            float pz = currentRow.GetFloat("fPtHe3") * std::sinh(currentRow.GetFloat("fEtaHe3")) + 
+                       rowToMix.GetFloat("fPtHad") * std::sinh(rowToMix.GetFloat("fEtaHad"));               
+
+            float invariantMass = std::sqrt((energyHe3 + energyProton) * (energyHe3 + energyProton) - 
+                                            px * px - py * py - pz * pz);
+            
+            if (invariantMass > 4.15314) {
+                continue;
+            }
+
+            for (auto & column: m_secondElementColumns) {
+                mixedRow[column] = rowToMix[column];
+            }
+
+            //std::cout << std::endl << "mixedRow after mixing: " << std::endl;
+            //mixedRow.Print();
+            //std::cout << "invariant mass: " << invariantMass << std::endl;
+            m_mixedArray.push_back(mixedRow);
+            //std::cout << "mixedRow pushed" << std::endl;
+            //m_mixedArray[m_mixedArray.size()-1].Print();
+            currentlyMixed++;
+            if (m_mixedArray.size() % 100000 == 0) {
+                std::cout << "Mixed size: " << m_mixedArray.size() << "/" << m_maxMixSize << "\r" << std::flush;
+            }
+            if (m_mixedArray.size() >= m_maxMixSize) {
+                return;
+            }
+        }
+
+        queue.Fill(currentRow);
+        
+    }
+    
+    m_mixedBinIndex[ibin+1] = currentlyMixed + m_mixedBinIndex[ibin];
+}
+
+/**
+ * @brief Mix the events in a given bin (thread safe)
+ * @param ibin Index of the bin
+ */
+void EventMixer::BinMixingParallel(const int ibin)
+{
+    const int binStart = m_binIndex[ibin];
+    const int binEnd = m_binIndex[ibin + 1];
+
+    const float massHe3 = physics::massHe3;
+    const float massProton = physics::massProton;
     
     Queue<Row> queue(m_bufferSize);
     int currentlyMixed = 0;
@@ -239,16 +301,42 @@ void EventMixer::BinMixing(const int ibin)
         Row currentRow = m_sortedArray[ievent];
         Row mixedRow = currentRow;
         queue.Fill(currentRow);
+
+        /*
+        float energyHe3 = std::sqrt(massHe3 * massHe3 + 
+                                            currentRow.GetFloat("fPtHe3") * std::cosh(currentRow.GetFloat("fEtaHe3")) * 
+                                            currentRow.GetFloat("fPtHe3") * std::cosh(currentRow.GetFloat("fEtaHe3")));
+        */
+       
         if (ievent == binStart) {
             continue;
         } else {
             for (int i = 0; i < queue.GetSize()-1; i++)
             {
-                std::cout << "Mixing: " << i << std::endl;
                 auto rowToMix = queue.GetElement(i);
                 if (currentRow[m_mixingExclusionVariable] == rowToMix[m_mixingExclusionVariable]) {
                     continue;
                 }
+
+                /*
+                float energyProton = std::sqrt(massProton * massProton + 
+                                               rowToMix.GetFloat("fPtHad") * std::cosh(rowToMix.GetFloat("fEtaHad")) * 
+                                               rowToMix.GetFloat("fPtHad") * std::cosh(rowToMix.GetFloat("fEtaHad")));              
+
+                float px = currentRow.GetFloat("fPtHe3") * std::cos(currentRow.GetFloat("fPhiHe3")) + 
+                           rowToMix.GetFloat("fPtHad") * std::cos(rowToMix.GetFloat("fPhiHad"));
+                float py = currentRow.GetFloat("fPtHe3") * std::sin(currentRow.GetFloat("fPhiHe3")) + 
+                           rowToMix.GetFloat("fPtHad") * std::sin(rowToMix.GetFloat("fPhiHad"));
+                float pz = currentRow.GetFloat("fPtHe3") * std::sinh(currentRow.GetFloat("fEtaHe3")) + 
+                           rowToMix.GetFloat("fPtHad") * std::sinh(rowToMix.GetFloat("fEtaHad"));               
+
+                float invariantMass = std::sqrt((energyHe3 + energyProton) * (energyHe3 + energyProton) - 
+                                                px * px - py * py - pz * pz);
+                
+                if (invariantMass > 4.15314) {
+                    continue;
+                }
+                */
                 for (auto & column: m_secondElementColumns) {
                     mixedRow[column] = rowToMix[column];
                 }
@@ -256,6 +344,12 @@ void EventMixer::BinMixing(const int ibin)
                     std::lock_guard<std::mutex> lock(m_mutex); // Lock the mutex
                     m_mixedArray.push_back(mixedRow);
                     currentlyMixed++;
+                    if (m_mixedArray.size() % 100000 == 0) {
+                        std::cout << "Mixed size: " << m_mixedArray.size() << "/" << m_maxMixSize << "\r" << std::flush;
+                    }
+                    if (m_mixedArray.size() >= m_maxMixSize) {
+                        return;
+                    }
                 }
             }
         }
@@ -305,7 +399,10 @@ void EventMixer::SaveMixedBinTree(TFile * outputFile, const int ibin)
 
 void EventMixer::SaveMixedTree(TFile * outputFile, const char * treeName = "MixedTree")
 {
-    ROOT::EnableImplicitMT(m_nThreads);
+    //ROOT::EnableImplicitMT(m_nThreads);
+
+    std::cout << "Freeing sorted array" << std::endl;
+    m_sortedArray.clear();
 
     outputFile->cd();
     TTree * outputTree = new TTree(treeName, treeName);
@@ -314,15 +411,46 @@ void EventMixer::SaveMixedTree(TFile * outputFile, const char * treeName = "Mixe
     mixedRow.InitRowFromDict(m_columnDict);
     mixedRow.CreateBranchesFromDict(outputTree, m_columnDict);
 
+    std::cout << "Saving mixed tree" << std::endl;
+    // checking purpose
+    const float massHe3 = physics::massHe3;
+    const float massProton = physics::massProton;
+    //
+
     for (auto& row: m_mixedArray)
     {
         mixedRow = row;
+        
+        float energyHe3 = std::sqrt(massHe3 * massHe3 + 
+                                            mixedRow.GetFloat("fPtHe3") * std::cosh(mixedRow.GetFloat("fEtaHe3")) * 
+                                            mixedRow.GetFloat("fPtHe3") * std::cosh(mixedRow.GetFloat("fEtaHe3")));
+
+        float energyProton = std::sqrt(massProton * massProton + 
+                                       mixedRow.GetFloat("fPtHad") * std::cosh(mixedRow.GetFloat("fEtaHad")) * 
+                                       mixedRow.GetFloat("fPtHad") * std::cosh(mixedRow.GetFloat("fEtaHad")));              
+
+        float px = mixedRow.GetFloat("fPtHe3") * std::cos(mixedRow.GetFloat("fPhiHe3")) + 
+                   mixedRow.GetFloat("fPtHad") * std::cos(mixedRow.GetFloat("fPhiHad"));
+        float py = mixedRow.GetFloat("fPtHe3") * std::sin(mixedRow.GetFloat("fPhiHe3")) + 
+                   mixedRow.GetFloat("fPtHad") * std::sin(mixedRow.GetFloat("fPhiHad"));
+        float pz = mixedRow.GetFloat("fPtHe3") * std::sinh(mixedRow.GetFloat("fEtaHe3")) + 
+                   mixedRow.GetFloat("fPtHad") * std::sinh(mixedRow.GetFloat("fEtaHad"));               
+
+        float invariantMass = std::sqrt((energyHe3 + energyProton) * (energyHe3 + energyProton) - 
+                                        px * px - py * py - pz * pz);
+        
+        if (invariantMass > 4.15314) {
+            std::cout << "input row: " << std::endl;
+            mixedRow.Print();
+            std::cout << "mixed row: " << std::endl;
+            mixedRow.Print();
+        }
         outputTree->Fill();
     }
     outputFile->cd();
     outputTree->Write();
 
-    ROOT::DisableImplicitMT();
+    //ROOT::DisableImplicitMT();
 }
 
 void EventMixer::Print()
